@@ -1,4 +1,7 @@
 package dao;
+import model.Usuario;
+import util.Conexao;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +12,7 @@ public class UsuarioDAO {
     // ---------------------------------------------------------
     public boolean emailExiste(String email) {
 
-        String sql = "SELECT id FROM alunos WHERE email = ? LIMIT 1";
+        String sql = "SELECT id FROM usuarios WHERE email = ? LIMIT 1";
 
         try (Connection conn = Conexao.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -28,29 +31,29 @@ public class UsuarioDAO {
     // ---------------------------------------------------------
     // METODO 2 —Cadastrar com verificação
     // ---------------------------------------------------------
-    public boolean cadastrar(Aluno aluno) {
+    public boolean cadastrar(Usuario usuario) {
 
-        if (emailExiste(aluno.getEmail())) {
+        if (emailExiste(usuario.getEmail())) {
             System.out.println("Erro: E-mail já está cadastrado!");
             return false;
         }
 
-        return inserir(aluno);
+        return inserir(usuario);
     }
 
     // ---------------------------------------------------------
     // METODO 3 — Inserir aluno (CREATE)
     // ---------------------------------------------------------
-    public boolean inserir(Aluno aluno) {
+    public boolean inserir(Usuario usuario) {
 
         String sql = "INSERT INTO alunos (nome, email, senha) VALUES (?, ?, ?)";
 
         try (Connection conn = Conexao.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, aluno.getNome());
-            stmt.setString(2, aluno.getEmail());
-            stmt.setString(3, aluno.getSenha());
+            stmt.setString(1, usuario.getNome());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setString(3, usuario.getSenha());
 
             stmt.executeUpdate();
             return true;
