@@ -1,14 +1,17 @@
 package dao;
+
 import model.Usuario;
 import util.Conexao;
 
 import java.sql.*;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioDAO {
+
     // ---------------------------------------------------------
-    // METODO 1 — Verificar se email já existe
+    // MÉTODO 1 — Verificar se email já existe
     // ---------------------------------------------------------
     public boolean emailExiste(String email) {
 
@@ -29,24 +32,17 @@ public class UsuarioDAO {
     }
 
     // ---------------------------------------------------------
-    // METODO 2 —Cadastrar com verificação
+    // MÉTODO 2 — Cadastrar (implementa cadastrarUsuario())
     // ---------------------------------------------------------
-    public boolean cadastrar(Usuario usuario) {
+    public boolean cadastrarUsuario(Usuario usuario) {
 
         if (emailExiste(usuario.getEmail())) {
             System.out.println("Erro: E-mail já está cadastrado!");
             return false;
         }
 
-        return inserir(usuario);
-    }
-
-    // ---------------------------------------------------------
-    // METODO 3 — Inserir aluno (CREATE)
-    // ---------------------------------------------------------
-    public boolean inserir(Usuario usuario) {
-
-        String sql = "INSERT INTO alunos (nome, email, senha) VALUES (?, ?, ?)";
+        // A data_cadastro no SQL deve ser DATE
+        String sql = "INSERT INTO usuarios (nome, email, senha, data_cadastro) VALUES (?, ?, ?, CURDATE())";
 
         try (Connection conn = Conexao.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -56,49 +52,65 @@ public class UsuarioDAO {
             stmt.setString(3, usuario.getSenha());
 
             stmt.executeUpdate();
+            System.out.println("Usuário cadastrado com sucesso!");
             return true;
 
         } catch (Exception e) {
-            System.out.println("Erro ao inserir aluno: " + e.getMessage());
+            System.out.println("Erro ao cadastrar usuário: " + e.getMessage());
             return false;
         }
     }
 
     // ---------------------------------------------------------
-    // METODO 4 — LISTAR TODOS
+    // MÉTODO 3 — Atualizar (implementa atualizarUsuario())
     // ---------------------------------------------------------
-    public List<Aluno> listar() {
+    public boolean atualizarUsuario(Usuario usuario) {
 
-        List<Aluno> lista = new ArrayList<>();
-        String sql = "SELECT * FROM alunos";
+        String sql = "UPDATE usuarios SET nome = ?, email = ?, senha = ? WHERE id = ?";
 
         try (Connection conn = Conexao.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
+            stmt.setString(1, usuario.getNome());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setString(3, usuario.getSenha());
+            stmt.setInt(4, usuario.getId());
 
-                lista.add(new Aluno(
-                        rs.getInt("id"),
-                        rs.getString("nome"),
-                        rs.getString("email"),
-                        rs.getString("senha")
-                ));
-            }
+            stmt.executeUpdate();
+            return true;
 
         } catch (Exception e) {
-            System.out.println("Erro ao listar alunos: " + e.getMessage());
+            System.out.println("Erro ao atualizar usuário: " + e.getMessage());
+            return false;
         }
-
-        return lista;
     }
 
     // ---------------------------------------------------------
-    // METODO 5 — BUSCAR POR ID
+    // MÉTODO 4 — Deletar (implementa excluirUsuario())
     // ---------------------------------------------------------
-    public Aluno buscarPorId(int id) {
+    public boolean excluirUsuario(int id) {
 
-        String sql = "SELECT * FROM alunos WHERE id = ?";
+        String sql = "DELETE FROM usuarios WHERE id = ?";
+
+        try (Connection conn = Conexao.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Erro ao deletar usuário: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // MÉTODO 5 — Exibir Informações (Busca por ID)
+    // ---------------------------------------------------------
+    public Usuario exibirInformacoes(int id) {
+
+        String sql = "SELECT * FROM usuarios WHERE id = ?";
 
         try (Connection conn = Conexao.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -108,72 +120,66 @@ public class UsuarioDAO {
             try (ResultSet rs = stmt.executeQuery()) {
 
                 if (rs.next()) {
-                    return new Aluno(
+                    return new Usuario(
                             rs.getInt("id"),
                             rs.getString("nome"),
                             rs.getString("email"),
-                            rs.getString("senha")
+                            rs.getString("senha"),
+                            rs.getDate("data_cadastro").toLocalDate()
                     );
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("Erro ao buscar aluno: " + e.getMessage());
+            System.out.println("Erro ao buscar usuário: " + e.getMessage());
         }
 
         return null;
     }
 
     // ---------------------------------------------------------
-    // METODO 6 — ATUALIZAR ALUNO
+    // MÉTODO 6 — Listar Todos (Novo)
     // ---------------------------------------------------------
-    public boolean atualizar(Aluno aluno) {
+    /**
+     * Lista todos os usuários cadastrados no banco de dados.
+     * @return Uma lista de objetos Usuario.
+     */
+    public List<Usuario> listarTodos() {
 
-        String sql = "UPDATE alunos SET nome = ?, email = ?, senha = ? WHERE id = ?";
+        List<Usuario> lista = new ArrayList<>();
+        String sql = "SELECT * FROM usuarios ORDER BY nome ASC";
 
         try (Connection conn = Conexao.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
-            stmt.setString(1, aluno.getNome());
-            stmt.setString(2, aluno.getEmail());
-            stmt.setString(3, aluno.getSenha());
-            stmt.setInt(4, aluno.getId());
-
-            stmt.executeUpdate();
-            return true;
-
+            while (rs.next()) {
+                lista.add(new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        rs.getString("senha"),
+                        rs.getDate("data_cadastro").toLocalDate()
+                ));
+            }
         } catch (Exception e) {
-            System.out.println("Erro ao atualizar aluno: " + e.getMessage());
-            return false;
+            System.out.println("Erro ao listar usuários: " + e.getMessage());
         }
+        return lista;
     }
 
     // ---------------------------------------------------------
-    // METODO 7 — DELETAR ALUNO
+    // MÉTODO 7 — Login (email + senha) (Adaptado para Sessão)
     // ---------------------------------------------------------
-    public boolean deletar(int id) {
+    /**
+     * Tenta logar um usuário. Se for bem-sucedido, retorna o objeto Usuario completo.
+     * @param email Email do usuário.
+     * @param senha Senha do usuário.
+     * @return O objeto Usuario se o login for válido, ou null caso contrário.
+     */
+    public Usuario login(String email, String senha) {
 
-        String sql = "DELETE FROM alunos WHERE id = ?";
-
-        try (Connection conn = Conexao.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            stmt.executeUpdate();
-            return true;
-
-        } catch (Exception e) {
-            System.out.println("Erro ao deletar aluno: " + e.getMessage());
-            return false;
-        }
-    }
-
-    // ---------------------------------------------------------
-    // METODO 8 — LOGIN (email + senha)
-    // ---------------------------------------------------------
-    public boolean login(String email, String senha) {
-
-        String sql = "SELECT id FROM alunos WHERE email = ? AND senha = ? LIMIT 1";
+        String sql = "SELECT * FROM usuarios WHERE email = ? AND senha = ? LIMIT 1";
 
         try (Connection conn = Conexao.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -183,11 +189,19 @@ public class UsuarioDAO {
 
             ResultSet rs = stmt.executeQuery();
 
-            return rs.next(); // encontrou o usuário
+            if (rs.next()) {
+                return new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        rs.getString("senha"),
+                        rs.getDate("data_cadastro").toLocalDate()
+                );
+            }
 
         } catch (Exception e) {
             System.out.println("Erro no login: " + e.getMessage());
-            return false;
         }
+        return null;
     }
 }
